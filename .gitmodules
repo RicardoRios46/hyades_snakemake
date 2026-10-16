@@ -1,0 +1,3 @@
+[submodule "resources/matmri"]
+	path = resources/matmri
+	url = https://gitlab.com/cfmm/matlab/matmri.git

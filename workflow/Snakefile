@@ -1,0 +1,317 @@
+configfile: 'config/config.yml'
+
+# Target rules, one per pipeline stage. Run a single stage with `snakemake <stage>`; 
+# `rule all` (default) runs every stage. defined at after the sategs.
+# data_repository has its own separate satege
+
+# Preprocessing (DESIGNER)
+rule preproc:
+    input:
+        ## DESIGNER outputs
+        expand(
+            'derivatives/designer-v2-preproc/sub-{subject}/dwi/sub-{subject}_acq-mde_run-{run}_desc-preproc_dwi.nii.gz',
+            subject=config['subjects'] + config['subjects_onlyDWI'],
+            run=config['runs']
+        ),
+        expand(
+            'derivatives/designer-v2-preproc/sub-{subject}/dwi/sub-{subject}_acq-mde_run-{run}_desc-preproc_dwi.bvec',
+            subject=config['subjects'] + config['subjects_onlyDWI'],
+            run=config['runs']
+        ),
+        expand(
+            'derivatives/designer-v2-preproc/sub-{subject}/dwi/sub-{subject}_acq-mde_run-{run}_desc-preproc_dwi.bval',
+            subject=config['subjects'] + config['subjects_onlyDWI'],
+            run=config['runs']
+        ),
+
+# Fitting (uFA, DKI, Cc, MTsat)
+rule fitting:
+    input:
+        ## uFA outputs
+        expand(
+            'derivatives/uFA-fit/sub-{subject}/dwi/sub-{subject}_run-{run}_{metric}.nii.gz',
+            subject=config['subjects'] + config['subjects_onlyDWI'],
+            run=config['runs'],
+            metric=config["metrics_uFA"]
+        ),
+        ## DKI outputs
+        expand(
+            'derivatives/DKI-fit/sub-{subject}/dwi/sub-{subject}_run-{run}_tvReg-{tvReg}_{metric}.nii.gz',
+            subject=config['subjects'] + config['subjects_onlyDWI'],
+            run=config['runs'],
+            tvReg=config['tvReg'],
+            metric=config["metrics_DKI"]
+        ),
+        ## Cc output
+        expand(
+            "derivatives/Cc-fit/sub-{subject}/dwi/sub-{subject}_run-{run}_tvReg-{tvReg}_Cc.nii.gz",
+            subject=config['subjects'] + config['subjects_onlyDWI'],
+            run=config['runs'],
+            tvReg=config['tvReg']
+        ),
+        ## MTsat outputs
+        expand(
+            'derivatives/MTsat-fit/sub-{subject}/anat/sub-{subject}_run-{run}_MTsat.nii.gz',
+            subject=config['subjects'],
+            run=config['runs'],
+            metric=config["metrics_MTsat"]
+        ),
+
+# Registration of fitted maps to T1w
+rule registration:
+    input:
+        ## B0_mean
+        expand(
+            'derivatives/registration/sub-{subject}/dwi/sub-{subject}_run-{run}_space-T1w_b0mean.nii.gz',
+            subject=config['subjects'] + config['subjects_onlyDWI'],
+            run=config['runs']
+        ),
+        ## DKI fit registration outputs
+        expand(
+            "derivatives/registration/sub-{subject}/dwi/sub-{subject}_run-{run}_space-T1w_tvReg-{tvReg}_{metric}.nii.gz",
+            subject=config['subjects'] + config['subjects_onlyDWI'],
+            run=config['runs'],
+            tvReg=config['tvReg'],
+            metric=config["metrics_DKI"]
+        ),
+        ## uFA fit registration outputs
+        expand(
+            "derivatives/registration/sub-{subject}/dwi/sub-{subject}_run-{run}_space-T1w_{metric}.nii.gz",
+            subject=config['subjects'] + config['subjects_onlyDWI'],
+            run=config['runs'],
+            metric=config["metrics_uFA"]
+        ),
+        ## Cc fit registration outputs
+        expand(
+            "derivatives/registration/sub-{subject}/dwi/sub-{subject}_run-{run}_space-T1w_tvReg-{tvReg}_Cc.nii.gz",
+            subject=config['subjects'] + config['subjects_onlyDWI'],
+            run=config['runs'],
+            tvReg=config['tvReg']
+        ),        
+        ## MTsat fit registration outputs
+        expand(
+            'derivatives/registration/sub-{subject}/anat/sub-{subject}_run-{run}_space-T1w_{metric}.nii.gz',
+            subject=config['subjects'],
+            run=config['runs'],
+            metric=config["metrics_MTsat"]
+        ),
+
+# Hippunfold_AD: segmentation, metric projections to the surface and dataframes
+rule hippunfold:
+    input:
+        ## Hippunfold_AD segmentation
+        expand(
+            'derivatives/hippunfold_AD/sub-{subject}/anat/sub-{subject}_hemi-{hemi}_space-T1w_label-hipp_desc-subfields_atlas-multihist7_dseg.nii.gz',
+            subject=config['subjects'] + config['subjects_onlyDWI'],
+            hemi=config['hemi']
+        ),
+        ## Hippo AD maps projections
+        ## uFA
+        expand( 
+            'derivatives/hippunfold_AD_metrics/uFA/sub-{subject}/surf/sub-{subject}_run-{run}_hemi-{hemi}_den-{density}_label-hipp_{metric}.shape.gii',
+            subject=config['subjects'] + config['subjects_onlyDWI'],
+            run=config['runs'],
+            hemi=config['hemi'],
+            density=config['density_hippunfoldV2'],
+            label=config['label_hippunfoldV2'],
+            metric=config["metrics_uFA"]
+        ),
+        ## DKI
+        expand( 
+            "derivatives/hippunfold_AD_metrics/DKI/sub-{subject}/surf/sub-{subject}_run-{run}_hemi-{hemi}_den-{density}_label-hipp_tvReg-{tvReg}_{metric}.shape.gii",
+            subject=config['subjects'] + config['subjects_onlyDWI'],
+            run=config['runs'],
+            tvReg=config['tvReg'],
+            hemi=config['hemi'],
+            density=config['density_hippunfoldV2'],
+            label=config['label_hippunfoldV2'],
+            metric=config["metrics_DKI"]
+        ),
+        ## Cc
+        expand( 
+            "derivatives/hippunfold_AD_metrics/Cc/sub-{subject}/surf/sub-{subject}_run-{run}_hemi-{hemi}_den-{density}_label-hipp_tvReg-{tvReg}_Cc.shape.gii",
+            subject=config['subjects'] + config['subjects_onlyDWI'],
+            run=config['runs'],
+            tvReg=config['tvReg'],
+            hemi=config['hemi'],
+            density=config['density_hippunfoldV2'],
+            label=config['label_hippunfoldV2'],
+        ),
+        ## MTsat
+        expand( 
+            'derivatives/hippunfold_AD_metrics/MTsat/sub-{subject}/surf/sub-{subject}_run-{run}_hemi-{hemi}_den-{density}_label-hipp_MTsat.shape.gii',
+            subject=config['subjects'],
+            run=config['runs'],
+            hemi=config['hemi'],
+            density=config['density_hippunfoldV2'],
+            label=config['label_hippunfoldV2'],
+            metric=config["metrics_MTsat"]
+        ),   
+        ## Dataframe hippunfold_AD (per subject)
+        expand(
+            "derivatives/dataframes/hippunfoldAD_segmentation/sub-{subject}/sub-{subject}_run-{run}_hemi-{hemi}_den-{density}_label-{label}_tvReg-{tvReg}_hippunfold-surfmetrics.csv",
+            subject=config['subjects'],
+            run=config['runs'],
+            hemi=config['hemi'],
+            density=config['density_hippunfoldV2'],
+            label=config['label_hippunfoldV2'],
+            tvReg=config['tvReg']
+        ),
+        expand(
+            "derivatives/dataframes/hippunfoldAD_segmentation/sub-{subject}/sub-{subject}_run-{run}_hemi-{hemi}_den-{density}_label-{label}_tvReg-{tvReg}_hippunfold-surfmetrics_onlyDWI.csv",
+            subject=config['subjects_onlyDWI'],
+            run=config['runs'],
+            hemi=config['hemi'],
+            density=config['density_hippunfoldV2'],
+            label=config['label_hippunfoldV2'],
+            tvReg=config['tvReg']
+        ),
+        ## all data hippunfold_AD dataframes
+        "derivatives/dataframes/hippunfoldAD_segmentation/hyades_hippunfoldAD_surfmetrics.csv",
+        "derivatives/dataframes/hippunfoldAD_segmentation/hyades_hippunfoldAD_volumes.tsv",
+        "derivatives/dataframes/hippunfoldAD_segmentation/hyades_hippunfoldAD_volumes_normalized.tsv",
+
+# Whole-brain SynthSeg segmentation and dataframes
+rule segmentation_synthseg:
+    input:
+        ## SynthSeg dseg, volumes and QC
+        expand(
+            ['derivatives/synthseg/sub-{subject}/anat/sub-{subject}_run-{run}_space-T1w_dseg.nii.gz',
+            'derivatives/synthseg/sub-{subject}/anat/sub-{subject}_run-{run}_space-T1w1mm_vol.csv',
+            'derivatives/synthseg/sub-{subject}/anat/sub-{subject}_run-{run}_space-T1w1mm_qc.csv'],
+            subject=config['subjects'] + config['subjects_onlyDWI'],
+            run=config['runs']
+        ),  
+        ## Concatenate metrics to single subject brain_segmentation dataframes
+        expand(
+            "derivatives/dataframes/brain_segmentation/sub-{subject}/sub-{subject}_run-{run}_tvReg-{tvReg}_dsegStats.csv",
+            subject=config['subjects'],
+            run=config['runs'],
+            tvReg=config['tvReg']
+        ),
+        expand(
+         "derivatives/dataframes/brain_segmentation/sub-{subject}/sub-{subject}_run-{run}_tvReg-{tvReg}_dsegStats_onlyDWI.csv",
+         subject=config['subjects_onlyDWI'],
+         run=config['runs'],
+         tvReg=config['tvReg']
+        ),
+        ## All subject brain segmentation dataframe
+        "derivatives/dataframes/brain_segmentation/hyades_wholeBrain.csv",
+        "derivatives/dataframes/brain_segmentation/synthseg_qc.csv",
+
+# Hybrid SIAM + SynthSeg ROI segmentation and dataframes.
+# SIAM GM is parcellated with the SynthSeg labels, and ROI volumes are
+# normalized by the SynthSeg TIV, so this stage also needs SynthSeg outputs.
+rule segmentation_ROIs:
+    input:
+        ## SIAM and ROIs dseg creation
+        expand(
+            ['derivatives/SIAM/sub-{subject}/anat/sub-{subject}_run-{run}_space-T1w_dseg.nii.gz'],
+            subject=config['subjects'] + config['subjects_onlyDWI'],
+            run=config['runs']
+        ), 
+        expand(
+            ['derivatives/SIAM/sub-{subject}/anat/sub-{subject}_run-{run}_space-T1w_cropped_dseg.nii.gz'],
+            subject=config['subjects'] + config['subjects_onlyDWI'],
+            run=config['runs']
+        ),
+        ## Running SIAM CSF correction
+        expand(
+            'derivatives/SIAM/sub-{subject}/anat/sub-{subject}_run-{run}_SIAM-csfCorrected_dseg.nii.gz',
+            subject=config['subjects'] + config['subjects_onlyDWI'],
+            run=config['runs']
+        ),
+        "derivatives/SIAM/SIAM_csfCorrected_log.csv",
+        
+        ## ROIs Dataframes
+        expand(
+            "derivatives/dataframes/brain_segmentation_ROIs/sub-{subject}/sub-{subject}_run-{run}_tvReg-{tvReg}_dsegStats.csv",
+            subject=config['subjects'],
+            run=config['runs'],
+            tvReg=config['tvReg']
+        ),
+        expand(
+            "derivatives/dataframes/brain_segmentation_ROIs/sub-{subject}/sub-{subject}_run-{run}_tvReg-{tvReg}_dsegStats_onlyDWI.csv",
+            subject=config['subjects_onlyDWI'],
+            run=config['runs'],
+            tvReg=config['tvReg']
+        ),
+        ## All subject brain segmentation dataframe
+        "derivatives/dataframes/brain_segmentation_ROIs/hyades_wholeBrain_ROIs.csv",
+
+# Data repository: public version of the data (not part of rule all;
+# run with `snakemake data_repository`)
+rule data_repository:
+    input:
+        ## Anatomical brain extracted outputs
+        expand(
+            ['derivatives/data_repository/sub-{subject}/anat/sub-{subject}_run-{run}_desc-brain_T1w.nii.gz',
+            'derivatives/data_repository/sub-{subject}/anat/sub-{subject}_run-{run}_desc-brain_T2w.nii.gz'],
+            subject=config['subjects'] + config['subjects_onlyDWI'],
+            run=config['runs']
+        ),
+        expand(
+            'derivatives/data_repository/sub-{subject}/anat/sub-{subject}_run-{run}_space-orig_desc-brain_flip-1_mt-off_MTS.nii.gz',
+            subject=config['subjects'],
+            run=config['runs']
+        ),
+        ## DWI brain extracted and preproc outputs
+        expand(
+            ['derivatives/data_repository/sub-{subject}/dwi/sub-{subject}_acq-mde_run-{run}_desc-preproc_dwi.nii.gz',
+            "derivatives/data_repository/sub-{subject}/dwi/sub-{subject}_acq-mde_run-{run}_desc-preproc_dwi.bvec",
+            "derivatives/data_repository/sub-{subject}/dwi/sub-{subject}_acq-mde_run-{run}_desc-preproc_dwi.bval"],
+            subject=config['subjects'] + config['subjects_onlyDWI'],
+            run=config['runs']
+        ),
+        ## ROIs Segmentation (SIAM+synthseg and hippunfold) outputs
+        expand(
+            ['derivatives/data_repository/sub-{subject}/anat/sub-{subject}_hemi-L_space-T1w_label-hipp_desc-subfields_atlas-multihist7_dseg.nii.gz',
+            'derivatives/data_repository/sub-{subject}/anat/sub-{subject}_hemi-R_space-T1w_label-hipp_desc-subfields_atlas-multihist7_dseg.nii.gz'],
+            subject=config['subjects'] + config['subjects_onlyDWI']
+        ),
+        expand(
+            'derivatives/data_repository/sub-{subject}/anat/sub-{subject}_run-{run}_space-T1w_desc-ROIs_dseg.nii.gz',
+            subject=config['subjects'] + config['subjects_onlyDWI'],
+            run=config['runs']
+        ),
+
+rule all:
+    default_target: True
+    input:
+        rules.preproc.input,
+        rules.fitting.input,
+        rules.registration.input,
+        rules.hippunfold.input,
+        rules.segmentation_synthseg.input,
+        rules.segmentation_ROIs.input,
+
+# Preprocessing Designer rules
+include: "rules/preproc_designer.smk"
+
+# Fitting uFA rules
+include: "rules/fitting_uFA.smk"
+# Fitting DKI rules
+include: "rules/fitting_DKI.smk"
+# Fitting Cc rules
+include: "rules/fitting_Cc.smk"
+# Fitting MTsat rules
+include: "rules/fitting_MTsat.smk"
+
+# Registration rules
+include: "rules/registration.smk"
+
+# Parcellation rules
+include: "rules/brain_segmentation_synthseg.smk"
+include: "rules/brain_segmentation_SIAM.smk"
+# Parcellation dataframe rules
+include: "rules/dataframe_brain_synthseg.smk"
+include: "rules/dataframe_brain_ROIs.smk"
+
+# HippUnfold_AD segmentation
+include: "rules/hippunfold_AD.smk"
+# HippUnfold_AD dataframe rules
+include: "rules/dataframe_hippunfoldAD_surfMetrics.smk"
+
+
+# Rules to create data repository
+include: "rules/data_repository.smk"

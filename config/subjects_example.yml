@@ -1,0 +1,9 @@
+# Example subjects file. Copy it (e.g. to config/subjects.yml), list your own
+# subjects, and run:  snakemake --configfile config/subjects.yml
+# Labels are the BIDS subject labels without the "sub-" prefix.
+subjects:          # full protocol (dMRI, MTS, T1w, T2w)
+  - '001'
+  - '002'
+  - '003'
+subjects_onlyDWI:  # no MTS data (MTsat outputs are skipped)
+  - '004'

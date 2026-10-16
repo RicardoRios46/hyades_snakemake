@@ -1,0 +1,14 @@
+data/
+derivatives/
+sourcedata/
+.snakemake/
+.cache/
+__pycache__/
+tests/
+.ipynb_checkpoints/
+genfi/
+resources/containers/*
+.nv/
+# pixi environments
+.pixi/*
+!.pixi/config.toml

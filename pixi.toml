@@ -1,0 +1,12 @@
+[workspace]
+channels = ["conda-forge", "bioconda"]
+name = "hyades_mri"
+platforms = ["linux-64", "osx-arm64"]
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
+python = "3.13.*"
+snakemake = "9.21.*"
+conda = ">=26.7.1,<27"

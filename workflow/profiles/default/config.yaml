@@ -1,0 +1,10 @@
+cores: all
+software-deployment-method:
+  - apptainer
+  - conda
+  - env-modules
+apptainer-args: "--nv --bind $PWD:$PWD"
+conda-prefix: "$HOME/hyades_workdir/hyades_envs"
+apptainer-prefix: "$HOME/hyades_workdir/apptainer_images"
+shadow-prefix: /tmp
+retries: 3
